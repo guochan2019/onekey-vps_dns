@@ -75,7 +75,7 @@ precheck() {
     echo -e "  [5/5] :53 端口 ........... ${YELLOW}⏭ dnsmasq 已装(升级/重配模式)${NC}"; PASS=$((PASS+1))
   else
     local holder
-    holder=$(ss -ulnp 2>/dev/null | grep -E "[:.]$(get_tailscale_ip 2>/dev/null):53\b" | grep -oP 'users:\\(\\(\"\K[^"]+' | head -1 || true)
+    holder=$(ss -ulnp 2>/dev/null | grep -E "[:.]$(get_tailscale_ip 2>/dev/null):53\b" | grep -oP 'users:\(\("\K[^"]+' | head -1 || true)
     if [ -z "$holder" ]; then
       echo -e "  [5/5] 100.x:53 端口 ...... ${GREEN}✅ 空闲${NC}"; PASS=$((PASS+1))
     else
@@ -105,6 +105,10 @@ do_install() {
   else
     apt-get update -qq 2>/dev/null || true
     DEBIAN_FRONTEND=noninteractive apt-get install -y dnsmasq 2>&1 | tail -1
+    # apt postinst 会用默认配置自动启动 dnsmasq——立即停掉,
+    # 避免旧实例占用 :53 导致稍后 restart 竞态失败 (Address already in use)
+    systemctl stop dnsmasq 2>/dev/null || true
+    sleep 1
   fi
 
   info "=== 2/4 写入配置 (监听 ${tip}:53) ==="
@@ -127,10 +131,19 @@ CONF
   info "=== 3/4 重启服务 ==="
   systemctl enable dnsmasq >/dev/null 2>&1 || true
   systemctl restart dnsmasq
-  sleep 1
 
   info "=== 4/4 验证 ==="
-  if ss -ulnp 2>/dev/null | grep -q "[:.]${tip}:53"; then
+  # 轮询等监听出现(最长 10 秒)——restart 后 systemd 可能需 1-2 秒拉起,
+  # 单次 sleep 1 检查会误报失败
+  local ok=0
+  for i in $(seq 1 10); do
+    if ss -ulnp 2>/dev/null | grep -q "[:.]${tip}:53"; then
+      ok=1
+      break
+    fi
+    sleep 1
+  done
+  if [ "$ok" -eq 1 ]; then
     info "  ✓ 监听确认: ${tip}:53"
   else
     err "监听失败: ${tip}:53 未出现 (journalctl -u dnsmasq 查看原因)"
