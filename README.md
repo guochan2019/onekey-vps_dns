@@ -22,6 +22,20 @@ bash <(wget -qO- https://raw.githubusercontent.com/guochan2019/onekey-vps_dns/ma
 - tailnet WireGuard 全程加密,明文 DNS 在内等效安全
 - 上游固定 8.8.8.8/1.1.1.1/8.8.4.4/1.0.0.1(VPS 海外直连无墙)
 
+## 实机验证(2026-09-06)
+
+三台 VPS(新加坡/东京/西雅图)+ PVE CT104(mosdns)全链路实测通过:
+
+```
+PVE 侧: CT104 netstat → 100.123.219.68:53 / 100.98.74.89:53 / 100.115.251.80:53 三条 ESTABLISHED
+DNS 三连: baidu answers=3 ✓ / google answers=8 ✓ / doubleclick NXDOMAIN ✓ (daed 零参与)
+```
+
+## 已知坑(脚本已修复,2026-09-06)
+
+1. **Debian dnsmasq postinst 自动启动**:`apt install dnsmasq` 后 postinst 会用默认配置自动 start,与脚本后续 `restart` 竞态 → `Address already in use` 首次失败。修复:安装后立即 `systemctl stop` + sleep 1,再写配置 + restart。
+2. **验证 grep 模式**:`grep "[:.]<ip>:53"` 的 `[:.]` 前缀要求 IP 前是冒号/点,但 `ss` 输出 IP 前是空格 → 永匹配失败,误报"监听失败"。修复:去掉前缀,用 `grep "<ip>:53\b"`(预检占用检测 + 安装后验证两处同修)。
+
 ## 使用
 
 | 操作 | 说明 |
