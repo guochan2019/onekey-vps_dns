@@ -75,7 +75,7 @@ precheck() {
     echo -e "  [5/5] :53 端口 ........... ${YELLOW}⏭ dnsmasq 已装(升级/重配模式)${NC}"; PASS=$((PASS+1))
   else
     local holder
-    holder=$(ss -ulnp 2>/dev/null | grep -E "[:.]$(get_tailscale_ip 2>/dev/null):53\b" | grep -oP 'users:\(\("\K[^"]+' | head -1 || true)
+    holder=$(ss -ulnp 2>/dev/null | grep -E "$(get_tailscale_ip 2>/dev/null):53\b" | grep -oP 'users:\(\("\K[^"]+' | head -1 || true)
     if [ -z "$holder" ]; then
       echo -e "  [5/5] 100.x:53 端口 ...... ${GREEN}✅ 空闲${NC}"; PASS=$((PASS+1))
     else
@@ -137,7 +137,7 @@ CONF
   # 单次 sleep 1 检查会误报失败
   local ok=0
   for i in $(seq 1 10); do
-    if ss -ulnp 2>/dev/null | grep -q "[:.]${tip}:53"; then
+    if ss -ulnp 2>/dev/null | grep -q "${tip}:53\b"; then
       ok=1
       break
     fi
