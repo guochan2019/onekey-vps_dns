@@ -122,6 +122,8 @@ no-resolv
 no-poll
 no-hosts
 no-dhcp-interface=*
+# 并发查全部上游, 取先返回者(默认只挑一个, 故障切换有延迟)
+all-servers
 CONF
   for u in $UPSTREAMS; do
     echo "server=$u" >> "$CONF_FILE"

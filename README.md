@@ -21,6 +21,7 @@ bash <(wget -qO- https://raw.githubusercontent.com/guochan2019/onekey-vps_dns/ma
 - 仅绑定 tailnet IP + 回环(`bind-interfaces`),**不暴露公网**,无开放递归风险
 - tailnet WireGuard 全程加密,明文 DNS 在内等效安全
 - 上游固定 8.8.8.8/1.1.1.1/8.8.4.4/1.0.0.1(VPS 海外直连无墙)
+- **`all-servers` 并发**:全部上游同查,取先返回者(2026-09-06 用户决策;默认 dnsmasq 只挑一个用,故障切换有延迟)
 
 ## 实机验证(2026-09-06)
 
