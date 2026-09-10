@@ -18,7 +18,7 @@ bash <(wget -qO- https://raw.githubusercontent.com/guochan2019/onekey-vps_dns/ma
 ```
 
 - **监听 IP 自动获取**(`tailscale ip -4`),无需交互输入——三台 VPS 跑同一脚本,各自监听自己的 100.x
-- 仅绑定 tailnet IP + 回环(`bind-interfaces`),**不暴露公网**,无开放递归风险
+- 仅绑定 tailnet IP + 回环(`bind-dynamic`),**不暴露公网**,无开放递归风险——语义同 `bind-interfaces`,但容忍开机时 tailscale IP 晚就绪(见"已知坑 3")
 - tailnet WireGuard 全程加密,明文 DNS 在内等效安全
 - 上游固定 8.8.8.8/1.1.1.1/8.8.4.4/1.0.0.1(VPS 海外直连无墙)
 - **`all-servers` 并发**:全部上游同查,取先返回者(2026-09-06 用户决策;默认 dnsmasq 只挑一个用,故障切换有延迟)
@@ -32,10 +32,11 @@ PVE 侧: CT104 netstat → 100.123.219.68:53 / 100.98.74.89:53 / 100.115.251.80:
 DNS 三连: baidu answers=3 ✓ / google answers=8 ✓ / doubleclick NXDOMAIN ✓ (daed 零参与)
 ```
 
-## 已知坑(脚本已修复,2026-09-06)
+## 已知坑(脚本已修复,2026-09-06 / 2026-09-10)
 
 1. **Debian dnsmasq postinst 自动启动**:`apt install dnsmasq` 后 postinst 会用默认配置自动 start,与脚本后续 `restart` 竞态 → `Address already in use` 首次失败。修复:安装后立即 `systemctl stop` + sleep 1,再写配置 + restart。
 2. **验证 grep 模式**:`grep "[:.]<ip>:53"` 的 `[:.]` 前缀要求 IP 前是冒号/点,但 `ss` 输出 IP 前是空格 → 永匹配失败,误报"监听失败"。修复:去掉前缀,用 `grep "<ip>:53\b"`(预检占用检测 + 安装后验证两处同修)。
+3. **🔴 开机竞态:重启后 dnsmasq 起不来(2026-09-10 实测,已修)**:`bind-interfaces` 下 VPS 重启 → dnsmasq 先于 tailscaled 给 `tailscale0` 挂 100.x → `failed to create listening socket for 100.x: Cannot assign requested address` → FAILED。服务 `enabled` ⇒ **每次开机必现**,而手动 `systemctl restart dnsmasq` 又正常 → 极易误判为偶发。**修复**:配置改 `bind-dynamic`——语义同(只绑 `listen-address` 列出的地址,不暴露公网),但会等地址出现、自动跟踪接口变化。**已装机器一次性修**:`sed -i 's/^bind-interfaces$/bind-dynamic/' /etc/dnsmasq.d/exit-dns.conf && systemctl restart dnsmasq`。⚠ 当场 restart 不复现竞态,**须真实重启验证**。
 
 ## 使用
 

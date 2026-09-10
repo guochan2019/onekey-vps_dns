@@ -117,7 +117,10 @@ do_install() {
 # 回滚: rm $CONF_FILE && apt-get purge -y dnsmasq dnsmasq-base
 port=53
 listen-address=127.0.0.1,${tip}
-bind-interfaces
+# bind-dynamic: 开机时 tailscale IP 往往晚于 dnsmasq 就绪。bind-interfaces 在地址不存在时
+#   直接退出(failed to create listening socket ... Cannot assign requested address),
+#   bind-dynamic 语义相同(只绑上面列出的地址)但会等地址出现并自动跟踪接口变化 (2026-09-10 实测)
+bind-dynamic
 no-resolv
 no-poll
 no-hosts
