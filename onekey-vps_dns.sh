@@ -12,7 +12,10 @@ set -e
 
 # ---------- 配置 ----------
 CONF_FILE="/etc/dnsmasq.d/exit-dns.conf"
-UPSTREAMS="8.8.8.8 1.1.1.1 8.8.4.4 1.0.0.1"
+# 上游: 3 家厂商(全部无拦截), 按 2026-09-10 三台 VPS 实测延迟排序
+#   9.9.9.10 Quad9 1-2ms / 1.1.1.1 Cloudflare 2-5ms / 8.8.8.8 Google 6-7ms
+#   (顺序仅可读性: all-servers 并发抢答, 实际取先返回者)
+UPSTREAMS="9.9.9.10 1.1.1.1 8.8.8.8"
 SVC="dnsmasq"
 
 # ---------- 彩色输出 ----------
